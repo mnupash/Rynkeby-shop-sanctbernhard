@@ -425,6 +425,24 @@ function App() {
               <${Btn} onClick=${loadOrders} col='#475569' sx=${{padding:'8px 14px',fontSize:13,borderRadius:8}}>${fetching?'Lädt…':'↻ Aktualisieren'}<//>
               ${orders.length>0?html`<${Btn} onClick=${exportCSV} col='#0f172a' sx=${{padding:'8px 14px',fontSize:13,borderRadius:8}}>📊 CSV<//>`:'' }
               ${orders.length>0&&gsUrl?html`<${Btn} onClick=${pushToSheets} col='#16a34a' sx=${{padding:'8px 14px',fontSize:13,borderRadius:8,opacity:gsPush?0.6:1}}>${gsPush?'Überträgt…':'📗 Sheets'}<//>`:'' }
+              ${orders.length>0&&paymentUrl?html`<${Btn} col=${bulkSending?'#94a3b8':'#7c3aed'} dis=${bulkSending} sx=${{padding:'8px 14px',fontSize:13,borderRadius:8}} onClick=${async()=>{
+                if(!window.confirm('Zahlungsaufforderungen an alle '+orders.length+' Besteller senden?\n\nHinweis: Artikel, die in der „Nach Artikel"-Ansicht auf 0 gesetzt wurden, werden in jeder Bestellung entfernt.')) return;
+                setBulkSending(true); setBulkMsg('');
+                let sent=0, failed=0;
+                for(const o of orders){
+                  const items=(editOrders[o.id]||o.items).map(i=>{
+                    const avail=artikelAvail[i.name];
+                    if(avail===undefined) return i;
+                    const ratio=(sum[i.name]||1)===0?0:avail/(sum[i.name]||1);
+                    return {...i,qty:Math.round(i.qty*ratio)};
+                  }).filter(i=>i.qty>0);
+                  if(!items.length) continue;
+                  try{const r=await fetch(paymentUrl,{method:'POST',body:JSON.stringify({buyer:o.buyer,items,ts:o.ts})});if(r.ok)sent++;else failed++;}
+                  catch{failed++;}
+                }
+                setBulkSending(false);
+                setBulkMsg(failed===0?'✓ '+sent+' Zahlungsaufforderungen gesendet!':'⚠ '+sent+' gesendet, '+failed+' fehlgeschlagen.');
+              }}>💶 ${bulkSending?'Sendet…':'Zahlungsaufforderung'}<//>`:'' }
             </div>
           </div>
           <div style=${{display:'flex',gap:0,marginBottom:16,background:'#f1f5f9',borderRadius:10,padding:3}}>
@@ -453,28 +471,7 @@ function App() {
                     </div>`;
                   })}
                 </div>
-                ${paymentUrl?html`<div style=${{background:'#faf5ff',border:'1px solid #e9d5ff',borderRadius:12,padding:16}}>
-                  <div style=${{fontSize:13,fontWeight:700,color:'#7c3aed',marginBottom:4}}>Alle ${orders.length} Zahlungsaufforderungen senden</div>
-                  <div style=${{fontSize:12,color:'#64748b',marginBottom:12}}>Jeder Besteller bekommt seine bereinigte Liste (Artikel auf 0 werden entfernt).</div>
-                  <${Btn} col=${bulkSending?'#94a3b8':'#7c3aed'} dis=${bulkSending} sx=${{borderRadius:8,padding:'10px 20px',fontSize:14}} onClick=${async()=>{
-                    setBulkSending(true); setBulkMsg('');
-                    let sent=0, failed=0;
-                    for(const o of orders){
-                      const items=(editOrders[o.id]||o.items).map(i=>{
-                        const avail=artikelAvail[i.name];
-                        if(avail===undefined) return i;
-                        const ratio=(sum[i.name]||1)===0?0:avail/(sum[i.name]||1);
-                        return {...i,qty:Math.round(i.qty*ratio)};
-                      }).filter(i=>i.qty>0);
-                      if(!items.length) continue;
-                      try{const r=await fetch(paymentUrl,{method:'POST',body:JSON.stringify({buyer:o.buyer,items,ts:o.ts})});if(r.ok)sent++;else failed++;}
-                      catch{failed++;}
-                    }
-                    setBulkSending(false);
-                    setBulkMsg(failed===0?'✓ '+sent+' Zahlungsaufforderungen gesendet!':'⚠ '+sent+' gesendet, '+failed+' fehlgeschlagen.');
-                  }}>💶 Alle Zahlungsaufforderungen senden<//>
-                  ${bulkMsg?html`<p style=${{fontSize:13,marginTop:10,fontWeight:700,color:bulkMsg[0]==='✓'?'#16a34a':'#dc2626'}}>${bulkMsg}</p>`:''}
-                </div>`:''}
+                ${bulkMsg?html`<p style=${{fontSize:13,marginTop:4,fontWeight:700,color:bulkMsg[0]==='✓'?'#16a34a':'#dc2626'}}>${bulkMsg}</p>`:''}
               </div>`}
             </div>`:''}
 

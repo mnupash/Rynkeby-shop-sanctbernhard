@@ -420,11 +420,11 @@ function App() {
 
         ${atab==='orders'?html`<div>
           <div style=${{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-            <div style=${{fontSize:15,fontWeight:800,color:'#0f172a'}}>Bestellungen</div>
+            <div style=${{fontSize:15,fontWeight:800,color:'#0f172a'}}>Bestellungen (${orders.length})</div>
             <div style=${{display:'flex',gap:8}}>
               <${Btn} onClick=${loadOrders} col='#475569' sx=${{padding:'8px 14px',fontSize:13,borderRadius:8}}>${fetching?'Lädt…':'↻ Aktualisieren'}<//>
-              ${orders.length>0?html`<${Btn} onClick=${exportCSV} col='#0f172a' sx=${{padding:'8px 14px',fontSize:13,borderRadius:8}}>📊 CSV<//>` :''}
-              ${orders.length>0&&gsUrl?html`<${Btn} onClick=${pushToSheets} col='#16a34a' sx=${{padding:'8px 14px',fontSize:13,borderRadius:8,opacity:gsPush?0.6:1}}>${gsPush?'Überträgt…':'📗 Sheets'}<//>`:''}
+              ${orders.length>0?html`<${Btn} onClick=${exportCSV} col='#0f172a' sx=${{padding:'8px 14px',fontSize:13,borderRadius:8}}>📊 CSV<//>`:'' }
+              ${orders.length>0&&gsUrl?html`<${Btn} onClick=${pushToSheets} col='#16a34a' sx=${{padding:'8px 14px',fontSize:13,borderRadius:8,opacity:gsPush?0.6:1}}>${gsPush?'Überträgt…':'📗 Sheets'}<//>`:'' }
             </div>
           </div>
           <div style=${{display:'flex',gap:0,marginBottom:16,background:'#f1f5f9',borderRadius:10,padding:3}}>
@@ -433,101 +433,98 @@ function App() {
           </div>
           ${gsMsg?html`<p style=${{fontSize:13,marginBottom:12,color:gsMsg[0]==='✓'?'#16a34a':'#dc2626'}}>${gsMsg}</p>`:''}
           ${!jbKey||!jbBin?html`<div style=${{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:12,padding:16,fontSize:13,color:'#92400e'}}>⚠ Bitte JSONBin-Zugangsdaten unter Einstellungen hinterlegen.</div>`:html`<div>
-            ${ordersView==='artikel'&&orders.length>0?html`<div style=${{marginBottom:20}}>
-              <div style=${{fontSize:13,color:'#64748b',lineHeight:1.5,marginBottom:16}}>
-                Setze nicht lieferbare Artikel auf <strong>0</strong> — das wird in allen Bestellungen berücksichtigt.<br/>
-                Danach einmal <strong>„Alle Zahlungsaufforderungen senden"</strong> klicken.
-              </div>
-              <div style=${{display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
-                ${Object.entries(sum).map(([name,totalQty])=>{
-                  const avail = artikelAvail[name]===undefined ? totalQty : artikelAvail[name];
-                  const unavailable = avail===0;
-                  return html`<div key=${name} style=${{background:'#fff',border:'1px solid '+(unavailable?'#fecaca':'#e2e8f0'),borderRadius:12,padding:'12px 16px',display:'flex',alignItems:'center',gap:12,opacity:unavailable?0.6:1}}>
-                    <div style=${{flex:1}}>
-                      <div style=${{fontSize:13,fontWeight:600,color:unavailable?'#94a3b8':'#0f172a',textDecoration:unavailable?'line-through':'none'}}>${name}</div>
-                      <div style=${{fontSize:11,color:'#94a3b8',marginTop:2}}>Gesamt bestellt: ${totalQty}×</div>
-                    </div>
-                    <div style=${{display:'flex',alignItems:'center',gap:8}}>
-                      <label style=${{fontSize:12,color:'#64748b',fontWeight:600}}>Lieferbar:</label>
-                      <input type='number' min='0' max=${totalQty} style=${{width:60,border:'1px solid '+(unavailable?'#fca5a5':'#e2e8f0'),borderRadius:6,padding:'4px 8px',fontSize:13,textAlign:'center',fontFamily:'inherit'}}
+
+            ${ordersView==='artikel'?html`<div>
+              ${orders.length===0?html`<div style=${{textAlign:'center',padding:'48px 0',color:'#94a3b8',fontSize:14}}>Noch keine Bestellungen.</div>`:html`<div>
+                <p style=${{fontSize:13,color:'#64748b',lineHeight:1.5,marginBottom:16}}>Setze nicht lieferbare Artikel auf <strong>0</strong> — das wird in allen Bestellungen berücksichtigt. Dann einmal <strong>„Alle senden"</strong> klicken.</p>
+                <div style=${{display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
+                  ${Object.entries(sum).map(([name,totalQty])=>{
+                    const avail=artikelAvail[name]===undefined?totalQty:artikelAvail[name];
+                    const out=avail===0;
+                    return html`<div key=${name} style=${{background:'#fff',border:'1px solid '+(out?'#fecaca':'#e2e8f0'),borderRadius:12,padding:'12px 16px',display:'flex',alignItems:'center',gap:12}}>
+                      <div style=${{flex:1}}>
+                        <div style=${{fontSize:13,fontWeight:600,color:out?'#94a3b8':'#0f172a',textDecoration:out?'line-through':'none'}}>${name}</div>
+                        <div style=${{fontSize:11,color:'#94a3b8',marginTop:2}}>Bestellt: ${totalQty}×</div>
+                      </div>
+                      <input type='number' min='0' max=${totalQty} style=${{width:60,border:'1px solid #e2e8f0',borderRadius:6,padding:'4px 8px',fontSize:13,textAlign:'center',fontFamily:'inherit'}}
                         value=${avail}
                         onChange=${e=>{const v=Math.max(0,Math.min(totalQty,parseInt(e.target.value)||0));setArtikelAvail(a=>({...a,[name]:v}));}} />
-                    </div>
-                    <button onClick=${()=>setArtikelAvail(a=>({...a,[name]:avail===0?totalQty:0}))} style=${{fontSize:11,border:'1px solid #e2e8f0',borderRadius:6,padding:'4px 8px',cursor:'pointer',background:unavailable?'#fee2e2':'#f8fafc',color:unavailable?'#dc2626':'#64748b',fontWeight:700,fontFamily:'inherit'}}>${unavailable?'✓ 0 – Nicht lieferbar':'Auf 0 setzen'}</button>
-                  </div>`;
-                })}
-              </div>
-              ${paymentUrl?html`<div style=${{background:'#faf5ff',border:'1px solid #e9d5ff',borderRadius:12,padding:16}}>
-                <div style=${{fontSize:13,fontWeight:700,color:'#7c3aed',marginBottom:8}}>Alle ${orders.length} Zahlungsaufforderungen senden</div>
-                <div style=${{fontSize:12,color:'#64748b',marginBottom:12}}>Sendet an jeden Besteller seine bereinigte Bestellung (Artikel auf 0 werden entfernt).</div>
-                <${Btn} col=${bulkSending?'#94a3b8':'#7c3aed'} dis=${bulkSending} sx=${{borderRadius:8,padding:'10px 20px',fontSize:14}} onClick=${async()=>{
-                  setBulkSending(true); setBulkMsg('');
-                  let sent=0, failed=0;
-                  for(const o of orders){
-                    const items=(editOrders[o.id]||o.items).map(i=>{
-                      const avail=artikelAvail[i.name];
-                      if(avail===undefined) return i;
-                      const ratio=avail/((sum[i.name])||1);
-                      const newQty=Math.round(i.qty*ratio);
-                      return {...i,qty:newQty};
-                    }).filter(i=>i.qty>0);
-                    if(!items.length) continue;
-                    try{const r=await fetch(paymentUrl,{method:'POST',body:JSON.stringify({buyer:o.buyer,items,ts:o.ts})});if(r.ok) sent++; else failed++;}
-                    catch{failed++;}
-                  }
-                  setBulkSending(false);
-                  setBulkMsg(failed===0?'✓ '+sent+' Zahlungsaufforderungen erfolgreich gesendet!':'⚠ '+sent+' gesendet, '+failed+' fehlgeschlagen.');
-                }}>💶 Alle Zahlungsaufforderungen senden<//>
-                ${bulkMsg?html`<p style=${{fontSize:13,marginTop:10,fontWeight:700,color:bulkMsg[0]==='✓'?'#16a34a':'#dc2626'}}>${bulkMsg}</p>`:''}
-              </div>`:''}
-            </div>`:''}
-            ${ordersView==='person'?html`<div>
-            ${Object.keys(sum).length>0&&ordersView==='person'?html`<div style=${{marginBottom:20}}>
-              <div style=${{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:10}}>Gesamtübersicht</div>
-              <div style=${{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:10,marginBottom:16}}>
-                ${Object.entries(sum).map(([name,qty])=>html`<div key=${name} style=${{background:'#fff',border:'1px solid #e2e8f0',borderRadius:12,padding:'14px 16px'}}>
-                  <div style=${{fontSize:30,fontWeight:800,color:'#dc2626',lineHeight:1}}>${qty}×</div>
-                  <div style=${{fontSize:12,color:'#475569',fontWeight:600,marginTop:5,lineHeight:1.3}}>${name}</div>
-                </div>`)}
-              </div>
-            </div>`:''}
-            ${orders.length===0?html`<div style=${{textAlign:'center',padding:'48px 0',color:'#94a3b8',fontSize:14}}>Noch keine Bestellungen. Klicke auf Aktualisieren.</div>`:html`<div style=${{display:'flex',flexDirection:'column',gap:10}}>
-              ${orders.map(o=>html`<div key=${o.id} style=${{background:'#fff',border:'1px solid #e2e8f0',borderRadius:12,overflow:'hidden'}}>
-                <button onClick=${()=>setExp(exp===o.id?null:o.id)} style=${{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 18px',background:'transparent',border:'none',cursor:'pointer',textAlign:'left',fontFamily:'inherit'}}>
-                  <div><span style=${{fontWeight:700,color:'#0f172a',fontSize:14}}>${o.buyer.name}</span><span style=${{color:'#94a3b8',fontSize:13,marginLeft:10}}>${o.buyer.email}</span></div>
-                  <div style=${{textAlign:'right'}}>
-                    <div style=${{fontSize:11,color:'#94a3b8'}}>${new Date(o.ts).toLocaleDateString('de-DE')}</div>
-                    <div style=${{fontSize:13,color:'#64748b'}}>${o.items.reduce((s,i)=>s+i.qty,0)} Artikel</div>
-                  </div>
-                </button>
-                ${exp===o.id?html`<div style=${{borderTop:'1px solid #f1f5f9',padding:'14px 18px',background:'#f8fafc'}}>
-                  ${(editOrders[o.id]||o.items).map((i,ix)=>html`<div key=${ix} style=${{display:'flex',alignItems:'center',gap:8,padding:'4px 0',borderBottom:'1px solid #f1f5f9'}}>
-                    <span style=${{flex:1,fontSize:13,color:'#374151'}}>${i.name}</span>
-                    <input type='number' min='0' style=${{width:52,border:'1px solid #e2e8f0',borderRadius:6,padding:'3px 6px',fontSize:13,textAlign:'center',fontFamily:'inherit'}}
-                      value=${i.qty}
-                      onChange=${e=>{const qty=Math.max(0,parseInt(e.target.value)||0);const cur=editOrders[o.id]||[...o.items];const upd=cur.map((x,j)=>j===ix?{...x,qty}:x);setEditOrders(ev=>({...ev,[o.id]:upd}));}} />
-                    <span style=${{fontSize:12,color:'#64748b',minWidth:60,textAlign:'right'}}>${(i.qty*(i.preis||0)).toFixed(2).replace('.',',')} €</span>
-                    <button title='Entfernen' onClick=${()=>{const cur=editOrders[o.id]||[...o.items];const upd=cur.filter((_,j)=>j!==ix);setEditOrders(ev=>({...ev,[o.id]:upd}));}} style=${{background:'transparent',border:'none',color:'#dc2626',cursor:'pointer',fontSize:16,padding:'0 4px',fontFamily:'inherit'}}>✕</button>
-                  </div>`)}
-                  ${o.buyer.note?html`<p style=${{fontSize:12,color:'#94a3b8',marginTop:8,fontStyle:'italic'}}>"${o.buyer.note}"</p>`:''}
-                  <div style=${{marginTop:12,display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
-                    ${paymentUrl?html`<${Btn} col='#7c3aed' sx=${{padding:'8px 16px',fontSize:13,borderRadius:8}} onClick=${async()=>{
-                      const items=(editOrders[o.id]||o.items).filter(i=>i.qty>0);
-                      if(!items.length){alert('Keine Artikel in der Bestellung.');return;}
-                      setPayMsg(m=>({...m,[o.id]:'Sendet…'}));
-                      try{const r=await fetch(paymentUrl,{method:'POST',body:JSON.stringify({buyer:o.buyer,items,ts:o.ts})});const t=await r.text();setPayMsg(m=>({...m,[o.id]:t==='ok'?'✓ Zahlungsaufforderung gesendet!':'Fehler: '+t}));}
-                      catch(e){setPayMsg(m=>({...m,[o.id]:'Fehler: '+e.message}));}
-                    }}>💶 Zahlungsaufforderung senden<//>` :''}
-                    ${editOrders[o.id]?html`<button onClick=${()=>setEditOrders(ev=>{const n={...ev};delete n[o.id];return n;})} style=${{fontSize:12,color:'#64748b',border:'1px solid #e2e8f0',background:'transparent',borderRadius:8,padding:'7px 12px',cursor:'pointer',fontFamily:'inherit'}}>↩ Änderungen verwerfen</button>`:''}
-                  </div>
-                  ${payMsg[o.id]?html`<p style=${{fontSize:12,marginTop:8,color:payMsg[o.id][0]==='✓'?'#16a34a':'#dc2626',fontWeight:600}}>${payMsg[o.id]}</p>`:''}
+                      <button onClick=${()=>setArtikelAvail(a=>({...a,[name]:out?totalQty:0}))} style=${{fontSize:11,border:'1px solid #e2e8f0',borderRadius:6,padding:'5px 10px',cursor:'pointer',background:out?'#fee2e2':'#f8fafc',color:out?'#dc2626':'#64748b',fontWeight:700,fontFamily:'inherit'}}>${out?'✓ Nicht lieferbar':'Auf 0 setzen'}</button>
+                    </div>`;
+                  })}
+                </div>
+                ${paymentUrl?html`<div style=${{background:'#faf5ff',border:'1px solid #e9d5ff',borderRadius:12,padding:16}}>
+                  <div style=${{fontSize:13,fontWeight:700,color:'#7c3aed',marginBottom:4}}>Alle ${orders.length} Zahlungsaufforderungen senden</div>
+                  <div style=${{fontSize:12,color:'#64748b',marginBottom:12}}>Jeder Besteller bekommt seine bereinigte Liste (Artikel auf 0 werden entfernt).</div>
+                  <${Btn} col=${bulkSending?'#94a3b8':'#7c3aed'} dis=${bulkSending} sx=${{borderRadius:8,padding:'10px 20px',fontSize:14}} onClick=${async()=>{
+                    setBulkSending(true); setBulkMsg('');
+                    let sent=0, failed=0;
+                    for(const o of orders){
+                      const items=(editOrders[o.id]||o.items).map(i=>{
+                        const avail=artikelAvail[i.name];
+                        if(avail===undefined) return i;
+                        const ratio=(sum[i.name]||1)===0?0:avail/(sum[i.name]||1);
+                        return {...i,qty:Math.round(i.qty*ratio)};
+                      }).filter(i=>i.qty>0);
+                      if(!items.length) continue;
+                      try{const r=await fetch(paymentUrl,{method:'POST',body:JSON.stringify({buyer:o.buyer,items,ts:o.ts})});if(r.ok)sent++;else failed++;}
+                      catch{failed++;}
+                    }
+                    setBulkSending(false);
+                    setBulkMsg(failed===0?'✓ '+sent+' Zahlungsaufforderungen gesendet!':'⚠ '+sent+' gesendet, '+failed+' fehlgeschlagen.');
+                  }}>💶 Alle Zahlungsaufforderungen senden<//>
+                  ${bulkMsg?html`<p style=${{fontSize:13,marginTop:10,fontWeight:700,color:bulkMsg[0]==='✓'?'#16a34a':'#dc2626'}}>${bulkMsg}</p>`:''}
                 </div>`:''}
-              </div>`)}
-            </div>`}
-          </div>`}
-          </div>`:''}
-        </div>`:''}
+              </div>`}
+            </div>`:''}
 
+            ${ordersView==='person'?html`<div>
+              ${Object.keys(sum).length>0?html`<div style=${{marginBottom:20}}>
+                <div style=${{fontSize:11,fontWeight:700,color:'#94a3b8',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:10}}>Gesamtübersicht</div>
+                <div style=${{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:10,marginBottom:16}}>
+                  ${Object.entries(sum).map(([name,qty])=>html`<div key=${name} style=${{background:'#fff',border:'1px solid #e2e8f0',borderRadius:12,padding:'14px 16px'}}>
+                    <div style=${{fontSize:30,fontWeight:800,color:'#dc2626',lineHeight:1}}>${qty}×</div>
+                    <div style=${{fontSize:12,color:'#475569',fontWeight:600,marginTop:5,lineHeight:1.3}}>${name}</div>
+                  </div>`)}
+                </div>
+              </div>`:''}
+              ${orders.length===0?html`<div style=${{textAlign:'center',padding:'48px 0',color:'#94a3b8',fontSize:14}}>Noch keine Bestellungen. Klicke auf Aktualisieren.</div>`:html`<div style=${{display:'flex',flexDirection:'column',gap:10}}>
+                ${orders.map(o=>html`<div key=${o.id} style=${{background:'#fff',border:'1px solid #e2e8f0',borderRadius:12,overflow:'hidden'}}>
+                  <button onClick=${()=>setExp(exp===o.id?null:o.id)} style=${{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 18px',background:'transparent',border:'none',cursor:'pointer',textAlign:'left',fontFamily:'inherit'}}>
+                    <div><span style=${{fontWeight:700,color:'#0f172a',fontSize:14}}>${o.buyer.name}</span><span style=${{color:'#94a3b8',fontSize:13,marginLeft:10}}>${o.buyer.email}</span></div>
+                    <div style=${{textAlign:'right'}}>
+                      <div style=${{fontSize:11,color:'#94a3b8'}}>${new Date(o.ts).toLocaleDateString('de-DE')}</div>
+                      <div style=${{fontSize:13,color:'#64748b'}}>${o.items.reduce((s,i)=>s+i.qty,0)} Artikel</div>
+                    </div>
+                  </button>
+                  ${exp===o.id?html`<div style=${{borderTop:'1px solid #f1f5f9',padding:'14px 18px',background:'#f8fafc'}}>
+                    ${(editOrders[o.id]||o.items).map((i,ix)=>html`<div key=${ix} style=${{display:'flex',alignItems:'center',gap:8,padding:'4px 0',borderBottom:'1px solid #f1f5f9'}}>
+                      <span style=${{flex:1,fontSize:13,color:'#374151'}}>${i.name}</span>
+                      <input type='number' min='0' style=${{width:52,border:'1px solid #e2e8f0',borderRadius:6,padding:'3px 6px',fontSize:13,textAlign:'center',fontFamily:'inherit'}}
+                        value=${i.qty}
+                        onChange=${e=>{const qty=Math.max(0,parseInt(e.target.value)||0);const cur=editOrders[o.id]||[...o.items];const upd=cur.map((x,j)=>j===ix?{...x,qty}:x);setEditOrders(ev=>({...ev,[o.id]:upd}));}} />
+                      <span style=${{fontSize:12,color:'#64748b',minWidth:60,textAlign:'right'}}>${(i.qty*(i.preis||0)).toFixed(2).replace('.',',')} €</span>
+                      <button title='Entfernen' onClick=${()=>{const cur=editOrders[o.id]||[...o.items];const upd=cur.filter((_,j)=>j!==ix);setEditOrders(ev=>({...ev,[o.id]:upd}));}} style=${{background:'transparent',border:'none',color:'#dc2626',cursor:'pointer',fontSize:16,padding:'0 4px',fontFamily:'inherit'}}>✕</button>
+                    </div>`)}
+                    ${o.buyer.note?html`<p style=${{fontSize:12,color:'#94a3b8',marginTop:8,fontStyle:'italic'}}>"${o.buyer.note}"</p>`:''}
+                    <div style=${{marginTop:12,display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+                      ${paymentUrl?html`<${Btn} col='#7c3aed' sx=${{padding:'8px 16px',fontSize:13,borderRadius:8}} onClick=${async()=>{
+                        const items=(editOrders[o.id]||o.items).filter(i=>i.qty>0);
+                        if(!items.length){alert('Keine Artikel in der Bestellung.');return;}
+                        setPayMsg(m=>({...m,[o.id]:'Sendet…'}));
+                        try{const r=await fetch(paymentUrl,{method:'POST',body:JSON.stringify({buyer:o.buyer,items,ts:o.ts})});const t=await r.text();setPayMsg(m=>({...m,[o.id]:t==='ok'?'✓ Zahlungsaufforderung gesendet!':'Fehler: '+t}));}
+                        catch(e){setPayMsg(m=>({...m,[o.id]:'Fehler: '+e.message}));}
+                      }}>💶 Zahlungsaufforderung senden<//>`:'' }
+                      ${editOrders[o.id]?html`<button onClick=${()=>setEditOrders(ev=>{const n={...ev};delete n[o.id];return n;})} style=${{fontSize:12,color:'#64748b',border:'1px solid #e2e8f0',background:'transparent',borderRadius:8,padding:'7px 12px',cursor:'pointer',fontFamily:'inherit'}}>↩ Änderungen verwerfen</button>`:''}
+                    </div>
+                    ${payMsg[o.id]?html`<p style=${{fontSize:12,marginTop:8,color:payMsg[o.id][0]==='✓'?'#16a34a':'#dc2626',fontWeight:600}}>${payMsg[o.id]}</p>`:''}
+                  </div>`:''}
+                </div>`)}
+              </div>`}
+            </div>`:''}
+
+          </div>`}
+        </div>`:''}
         ${atab==='products'?html`<div>
           <div style=${{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
             <div style=${{fontSize:15,fontWeight:800,color:'#0f172a'}}>Produkte</div>

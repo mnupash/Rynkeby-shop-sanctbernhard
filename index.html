@@ -97,12 +97,12 @@ const lsS  = (k,v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catc
 const jbFetch = async (key, bin) => {
   try {
     const r = await fetch(JB+'/'+bin+'/latest', { headers:{ 'X-Master-Key':key, 'X-Bin-Meta':'false' } });
-    if(!r.ok) return null;
+    if(!r.ok){ console.error('jbFetch Fehler:', r.status, r.statusText, '| Bin:', bin, '| Key-Anfang:', key.slice(0,10)); return null; }
     const d = await r.json();
     if(Array.isArray(d)) return d;
     if(Array.isArray(d.record)) return d.record;
     return [];
-  } catch { return null; }
+  } catch(e) { console.error('jbFetch Exception:', e); return null; }
 };
 const jbSave = async (key, bin, data) => {
   try {
@@ -164,6 +164,7 @@ function App() {
   const [sub,     setSub]      = useState(false);
   const [subErr,  setSubErr]   = useState('');
   const [fetching,setFetch]    = useState(false);
+  const [fetchErr,setFetchErr] = useState('');
   const [gsUrl,   setGsUrlS]   = useState('');
   const [gsPush,  setGsPush]   = useState(false);
   const [gsMsg,   setGsMsg]    = useState('');
@@ -202,10 +203,11 @@ function App() {
   const saveOrds     = o => { setOrdsS(o); };
 
   const loadOrders = async () => {
-    if(!jbKey||!jbBin) return;
-    setFetch(true);
+    if(!jbKey||!jbBin){ setFetchErr('Kein API-Key oder Bin-ID konfiguriert (Einstellungen prüfen).'); return; }
+    setFetch(true); setFetchErr('');
     const d = await jbFetch(jbKey, jbBin);
     if(d) setOrdsS(d.filter(o=>o.id&&o.buyer&&Array.isArray(o.items)&&!o._cleared&&!o._reset&&!o.init));
+    else setFetchErr('JSONbin nicht erreichbar – bitte F12 → Konsole prüfen (Fehlermeldung dort) oder Seite neu laden.');
     setFetch(false);
   };
 
@@ -420,6 +422,7 @@ function App() {
       <div style=${{maxWidth:680,margin:'0 auto',padding:24}}>
 
         ${atab==='orders'?html`<div>
+          ${fetchErr?html`<div style=${{background:'#fef2f2',border:'1px solid #fca5a5',borderRadius:10,padding:'10px 14px',fontSize:13,color:'#dc2626',marginBottom:12}}>⚠️ ${fetchErr}</div>`:''}
           <div style=${{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
             <div style=${{fontSize:15,fontWeight:800,color:'#0f172a'}}>Bestellungen (${orders.length})</div>
             <div style=${{display:'flex',gap:8}}>
